@@ -1,0 +1,2 @@
+This is our test file for our Mini-Project 2 in CMPT 371.
+We are sending this using pipelining, flow control, and congestion control.
