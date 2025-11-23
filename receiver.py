@@ -124,6 +124,9 @@ def receive_data(addr):
     buffer_size = 1024
     buffer_used = 0
 
+    last_drain_time = time.time()
+    drain_rate = 50 # bytes per second
+
     while True:
         try:
             data, sender = receiver_socket.recvfrom(4096)
@@ -133,14 +136,23 @@ def receive_data(addr):
 
         pkt = Packet.unpack(data)
 
+        # Consume datat with a rate, to free buffer
+        current_time = time.time()
+        elapsed = current_time - last_drain_time
+
+        if elapsed >= 1.0:
+            drained = int(drain_rate * elapsed)
+            buffer_used = max(0, buffer_used - drained)
+            last_drain_time = current_time
+
         # Invalid checksum
         if not pkt.valid:
             print(f"Receiver: Dropped corrupted packet seq={pkt.seq}")
             continue
 
         # simulate dropping data packet
-        if random.random() < 0.1:
-            print("Receiver: Simulated data loss")
+        if random.random() < 0.4:
+            print("\n***Receiver: Simulated data loss***\n")
             continue
 
         print(f"Receiver: Got packet seq={pkt.seq}")
@@ -165,6 +177,9 @@ def receive_data(addr):
         if pkt.seq == expected_seq:
             delivered = pkt.payload # Delivery to application layer
             print(f"Receiver: Delivered: {delivered}")
+
+            # buffer_used -= payload_len   # free space
+            # buffer_used = max(buffer_used, 0)
 
             buffer_used += payload_len
             # expected_seq += payload_len

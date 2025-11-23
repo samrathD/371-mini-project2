@@ -72,7 +72,7 @@ FLAG_SYN = 0b001
 FLAG_ACK = 0b010
 FLAG_FIN = 0b100
 
-CHUNK_SIZE = 10
+CHUNK_SIZE = 256
 WINDOW_SIZE = 5
 
 # IP will change based on device
@@ -134,7 +134,7 @@ def send_file(filename):
     base = 0
     nextSeq = 0
     timer_start = None
-    TIMER_DURATION = 0.5
+    TIMER_DURATION = 5
 
     chunks = []
     with open(filename,"rb") as f:
