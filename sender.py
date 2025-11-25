@@ -163,20 +163,20 @@ def send_file(filename):
             packed = pkt.pack()
             send_buffer[nextSeq] = packed
 
-            # Corrupt packet to test for checksum 
-            if random.random() < 0.1:
-                print("\n***Sender: Corrupting packet***\n")
-                # Make a mutable copy
-                corrupted = bytearray(packed)
+            # *******TEST:Corrupt packet to test for checksum******* 
+            # if random.random() < 0.1:
+            #     print("\n***Sender: Corrupting packet***\n")
+            #     # Make a mutable copy
+            #     corrupted = bytearray(packed)
 
-                # Flip a random bit in a random byte
-                idx = random.randint(0, len(corrupted)-1)
-                corrupted[idx] ^= 0xFF
+            #     # Flip a random bit in a random byte
+            #     idx = random.randint(0, len(corrupted)-1)
+            #     corrupted[idx] ^= 0xFF
 
-                sender_socket.sendto(bytes(corrupted), reciverAddr)
-                print(f"Sent CORRUPTED packet {nextSeq}")
-                nextSeq += 1
-                continue
+            #     sender_socket.sendto(bytes(corrupted), reciverAddr)
+            #     print(f"Sent CORRUPTED packet {nextSeq}")
+            #     nextSeq += 1
+            #     continue
 
             sender_socket.sendto(packed, reciverAddr)
             print(f"\nSent packet {nextSeq}")
