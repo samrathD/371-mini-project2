@@ -54,7 +54,7 @@ class Packet:
 
         payload_start = HEADER_SIZE + 4
         payload_end = payload_start + length
-        payload = b[payload_start:payload_end].decode()
+        payload = b[payload_start:payload_end].decode("latin1")
 
         # Build packet object
         pkt = Packet(seq, flags, ack, payload, rwnd, checksum)
@@ -121,6 +121,9 @@ def handshake():
 def send_file(filename):
     print(f"Sending file {filename}")
 
+    MAX_INACTIVITY = 30   # seconds with no ACKs
+    last_activity = time.time()
+
     # Initialize receiver window size
     rwnd_packets = WINDOW_SIZE
 
@@ -160,8 +163,23 @@ def send_file(filename):
             packed = pkt.pack()
             send_buffer[nextSeq] = packed
 
+            # Corrupt packet to test for checksum 
+            if random.random() < 0.1:
+                print("\n***Sender: Corrupting packet***\n")
+                # Make a mutable copy
+                corrupted = bytearray(packed)
+
+                # Flip a random bit in a random byte
+                idx = random.randint(0, len(corrupted)-1)
+                corrupted[idx] ^= 0xFF
+
+                sender_socket.sendto(bytes(corrupted), reciverAddr)
+                print(f"Sent CORRUPTED packet {nextSeq}")
+                nextSeq += 1
+                continue
+
             sender_socket.sendto(packed, reciverAddr)
-            print(f"Sent packet {nextSeq}")
+            print(f"\nSent packet {nextSeq}")
 
             if base == nextSeq:
                 timer_start = time.time()
@@ -170,8 +188,9 @@ def send_file(filename):
 
         # Wait for ACK
         try:
-            sender_socket.settimeout(0.1)
+            sender_socket.settimeout(1)
             data, addr = sender_socket.recvfrom(2048)
+            last_activity = time.time()
             ackp = Packet.unpack(data)
 
             # Invalid checksum
@@ -209,10 +228,13 @@ def send_file(filename):
                     print(f"Duplicate ACK {acknum} ({dup_ack_count})")
 
                     # 3 duplicate ACKs
-                    if dup_ack_count ==3:
+                    if dup_ack_count == 3:
                         ssthresh = max(int(cwnd//2),1)
+                        oldCwnd = cwnd
                         cwnd = ssthresh
                         
+                        print(f"\n Congestion window went from {oldCwnd} -> {cwnd}\n")
+
                         # Resend missing segment
                         missing =  acknum + 1 
                         if missing in send_buffer:
@@ -224,9 +246,14 @@ def send_file(filename):
         except timeout:
             pass
 
+        # Abort if no ACKs for too long
+        if time.time() - last_activity > MAX_INACTIVITY:
+            print("\n*** Sender aborting: receiver inactive too long ***\n")
+            return
+        
         # Check Timeout
         if timer_start and time.time() - timer_start > TIMER_DURATION:
-            print("Timeout occured resending window")
+            print("\n***Timeout occured resending window***\n")
 
             # Update congestion window
             ssthresh = max(int(cwnd//2),1)
@@ -240,6 +267,9 @@ def send_file(filename):
                 print(f"Resent packet {seq}")
 
             timer_start = time.time()
+        
+
+
 
     print("File sent correctly.")   
 

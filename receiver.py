@@ -54,7 +54,7 @@ class Packet:
 
         payload_start = HEADER_SIZE + 4
         payload_end = payload_start + length
-        payload = b[payload_start:payload_end].decode()
+        payload = b[payload_start:payload_end].decode("latin1")
 
         # Build packet object
         pkt = Packet(seq, flags, ack, payload, rwnd, checksum)
@@ -121,7 +121,8 @@ def receive_data(addr):
     expected_seq = 0
     last_ack = 0
 
-    buffer_size = 1024
+    # buffer_size = 1024
+    buffer_size = 4096
     buffer_used = 0
 
     last_drain_time = time.time()
@@ -147,15 +148,15 @@ def receive_data(addr):
 
         # Invalid checksum
         if not pkt.valid:
-            print(f"Receiver: Dropped corrupted packet seq={pkt.seq}")
+            print(f"***Receiver: Dropped corrupted packet seq={pkt.seq}***")
             continue
 
         # simulate dropping data packet
-        if random.random() < 0.4:
+        if random.random() < 0.1:
             print("\n***Receiver: Simulated data loss***\n")
             continue
 
-        print(f"Receiver: Got packet seq={pkt.seq}")
+        print(f"\nReceiver: Got packet seq={pkt.seq}")
 
         payload_len = len(pkt.payload)
 
@@ -169,6 +170,7 @@ def receive_data(addr):
         # flow control check
         if buffer_used + payload_len > buffer_size:
             print("Receiver: Buffer full, advertising rwnd=0")
+            print(f"Receiver: Sending last ACK {last_ack}")
             ack = Packet(0, FLAG_ACK, last_ack, "", rwnd=0)
             receiver_socket.sendto(ack.pack(), addr)
             continue
@@ -190,7 +192,7 @@ def receive_data(addr):
             rwnd = buffer_size - buffer_used
             ack = Packet(0, FLAG_ACK, last_ack, "", rwnd)
             receiver_socket.sendto(ack.pack(), addr)
-            print(f"Receiver: Sent ACK {ack.ack} rwnd={rwnd}")
+            print(f"\nReceiver: Sent ACK {ack.ack} rwnd={rwnd}")
             time.sleep(0.5)
 
         else:
