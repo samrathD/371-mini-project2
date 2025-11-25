@@ -76,7 +76,7 @@ CHUNK_SIZE = 256
 WINDOW_SIZE = 5
 
 # IP will change based on device
-reciverAddr = ("192.168.1.76",1200)
+reciverAddr = ("127.0.0.1", 1200)
 sender_socket = socket(AF_INET, SOCK_DGRAM)
 sender_socket.bind(("", 1400))
 sender_socket.settimeout(20)
